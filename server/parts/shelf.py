@@ -70,6 +70,8 @@ class HoleShelfDefinition(BaseModel):
     rows: Annotated[int, Field(gt=0, description="Number of rows in the shelf")] = 1
     thickness: Annotated[float, Field(gt=0, description="Thickness of shelf in mm")] = 4
     hole_radius: Annotated[float, Field(gt=0, description="Radius of hole in mm")] = 3.5
+    hole_chamfer_depth: Annotated[float, Field(ge=0, description="Chamfer depth from the top of each hole in mm (0 for no chamfer)")] = 0
+    hole_chamfer_angle: Annotated[float, Field(gt=0, description="Chamfer angle in degrees from the vertical axis")] = 45
     column_gap: Annotated[float, Field(gt=0, description="Gap between holes in a column in mm")] = 15
     row_gap: Annotated[float, Field(gt=0, description="Gap between holes in a row in mm")] = 15
     front_gap: Annotated[float, Field(gt=0, description="Gap between front of shelf and holes in mm")] = 15
@@ -119,6 +121,8 @@ async def hole_shelf(request: Request, body: HoleShelfDefinition):
             rows=body.rows,
             thickness=body.thickness,
             hole_radius=body.hole_radius,
+            hole_chamfer_depth=body.hole_chamfer_depth,
+            hole_chamfer_angle=body.hole_chamfer_angle,
             column_gap=body.column_gap,
             row_gap=body.row_gap,
             front_gap=body.front_gap,
