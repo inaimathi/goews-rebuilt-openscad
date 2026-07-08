@@ -7,15 +7,18 @@ use <hanger.scad>
 
 /* [Primary parameters] */
 // Which variant to use
-variant = 0; // [0: Original, 1: Thicker cleats]
+variant = 1; // [0: Original, 1: Thicker cleats]
 
 // Added to hangers to allow for easier insertion and removal. This can be reduced to make hanger plates tighter to the tile. It reduces the tilt but makes them harder to insert and remove
 hanger_tolerance = 0.15;
 
 
 /* [Magazine parameters] */
-// Number of magazines to hold
-magazines = 4;
+// Number of columns of magazines (across the width)
+columns = 4;
+
+// Number of rows of magazines (front-to-back depth). Each row adds another line of cradles further out from the wall.
+rows = 2;
 
 // Diameter of the cradle = the cross-section of the magazine that rests in the scoop. MEASURE YOURS and add a touch. (Rival mags vary by capacity, so this is a placeholder.)
 mag_diameter = 33;
@@ -40,8 +43,11 @@ cradle_rounding = 1;
 
 
 /* [Layout parameters] */
-// Gap between cradles in mm
-gap = 8;
+// Gap between columns (side-to-side) in mm
+gap = 6;
+
+// Gap between rows (front-to-back) in mm
+row_gap = 5;
 
 // Gap/lip on the outward-facing end of the cradles. Set to 0 for an open front you can slide magazines straight into (like the reference part)
 front_gap = 0;
@@ -53,10 +59,10 @@ rear_gap = 0;
 side_gap = 6;
 
 // Rear fillet radius in mm (reinforces the joint to the hanger plate)
-rear_fillet_radius = 2;
+rear_fillet_radius = 3;
 
 // Rounding on the outer top edges in mm
-rounding = 0.5;
+rounding = 2;
 
 
 /* [Hidden] */
@@ -66,7 +72,8 @@ $fs=0.5;
 
 module mag_holder(
     variant=variant_original,
-    magazines=4,
+    columns=4,
+    rows=1,
     mag_diameter=35,
     cradle_clearance=1.0,
     cradle_depth=22,
@@ -74,6 +81,7 @@ module mag_holder(
     floor_thickness=4,
     cradle_rounding=1,
     gap=8,
+    row_gap=8,
     front_gap=0,
     rear_gap=8,
     side_gap=6,
@@ -89,8 +97,9 @@ module mag_holder(
     cradle_footprint = mag_diameter + cradle_clearance;
     cut_radius = cradle_footprint / 2;
 
-    width = (side_gap * 2) + (magazines * cradle_footprint) + ((magazines - 1) * gap);
-    depth = front_gap + rear_gap + cradle_length + 8;
+    width = (side_gap * 2) + (columns * cradle_footprint) + ((columns - 1) * gap);
+    // Depth grows with the number of rows of cradles, front-to-back
+    depth = front_gap + rear_gap + (rows * cradle_length) + ((rows - 1) * row_gap) + 8;
 
     // Tall enough to contain the cradle depth plus the solid floor beneath it
     block_height = floor_thickness + cradle_depth;
@@ -120,17 +129,21 @@ module mag_holder(
 
             shelf_x_offset = ((get_hanger_plate_width(width) - width) / 2);
             translate([shelf_x_offset, y_offset, 0]) {
-                for (m = [0 : magazines - 1]) {
-		  cradle_x = side_gap + m * (cradle_footprint + gap) + cradle_footprint / 2;
-		  // Half-pipe scoop: a cylinder lying along the depth (Y) axis,
-		  // subtracted from the top of the body.
-		  translate([cradle_x, rear_gap + cradle_length / 2, -mag_center_z]) {
-		    translate([-4, -(mag_diameter/2-1), 0]) cube([8, 9, 60]);
-		    notch=mag_diameter+5;
-		    n2 = notch-5;
-		    translate([-notch/2, 8, 0]) cube([notch, 9, 60]);
-		    translate([-n2/2, 15, 0]) cube([n2, 9, 60]);
-		    translate([0, 9, 0]) linear_extrude(60) circle(r=mag_diameter/2);
+                for (col = [0 : columns - 1]) {
+		  cradle_x = side_gap + col * (cradle_footprint + gap) + cradle_footprint / 2;
+		  for (row = [0 : rows - 1]) {
+		    // Each row steps further out from the wall (+Y)
+		    cradle_y = rear_gap + cradle_length / 2 + row * (cradle_length + row_gap);
+		    // Half-pipe scoop: a cylinder lying along the depth (Y) axis,
+		    // subtracted from the top of the body.
+		    translate([cradle_x, cradle_y, -mag_center_z]) {
+		      translate([-4, -(mag_diameter/2-1), 0]) cube([8, 9, 60]);
+		      notch=mag_diameter+5;
+		      n2 = notch-5;
+		      translate([-notch/2, 8, 0]) cube([notch, 9, 60]);
+		      translate([-n2/2, 15, 0]) cube([n2, 9, 60]);
+		      translate([0, 9, 0]) linear_extrude(60) circle(r=mag_diameter/2);
+		    }
 		  }
                 }
             }
@@ -146,7 +159,8 @@ module mag_holder(
 
 mag_holder(
     variant=variant,
-    magazines=magazines,
+    columns=columns,
+    rows=rows,
     mag_diameter=mag_diameter,
     cradle_clearance=cradle_clearance,
     cradle_depth=cradle_depth,
@@ -154,6 +168,7 @@ mag_holder(
     floor_thickness=floor_thickness,
     cradle_rounding=cradle_rounding,
     gap=gap,
+    row_gap=row_gap,
     front_gap=front_gap,
     rear_gap=rear_gap,
     side_gap=side_gap,
