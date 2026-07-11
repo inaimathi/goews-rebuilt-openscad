@@ -2,6 +2,15 @@
  * These constants should not be modified
  */
 
+// Many difference operations benefit from an overcut to eliminate zero or near-zero
+// artifacts. These artifacts often show up in the preview and are occasionally treated
+// as solid in some slicers.
+overcut = 0.01;
+
+// In some operations a double overcut is needed to account for a translation shift for
+// the base of an overcut
+double_overcut = overcut * 2;
+
 // The width of the hanger
 hanger_width = 35.2;
 
@@ -72,7 +81,7 @@ grid_hanger_y_offset = 3;
 
 // The height of the triangles at the top and bottom of the hex tiles are derived from
 // the width
-tile_triangle_height = tile_width * (1 - sqrt(2) / 2);
+tile_triangle_height = tile_width * sqrt(3) / 6;
 
 // The center offset of a row above another
 tile_y_offset = tile_width * sqrt(3) / 2;

@@ -54,14 +54,9 @@ skip_list = "";
 $fa=0.5;
 $fs=0.5;
 
-// Small boolean overcut to avoid coplanar faces / zero-thickness STL scraps.
-// These can show up in the browser preview as "filled" hanger windows even
-// though slicers usually discard them.
-bool_eps = 0.02;
-
 module tile_cleat(variant=variant_original) {
     difference() {
-        translate([0, 0, tile_hanger_cleat_width])
+        translate([0, 0, tile_hanger_cleat_width]) {
             union() {
                 if (variant == variant_thicker_cleats) {
                     linear_extrude(height = cleat_offset)
@@ -77,14 +72,19 @@ module tile_cleat(variant=variant_original) {
                             ]
                         );
             }
-        linear_extrude(height = tile_hanger_cleat_width + cleat_offset)
-            polygon(
-                points = [
-                    [0, tile_hanger_cleat_lower_height + tile_hanger_cleat_width],
-                    [tile_hanger_cleat_width, tile_hanger_cleat_lower_height + tile_hanger_cleat_width],
-                    [tile_hanger_cleat_width, tile_hanger_cleat_lower_height],
-                ]
-            );
+        }
+        translate([0, 0, overcut]) {
+            linear_extrude(height = tile_hanger_cleat_width + cleat_offset) {
+                polygon(
+                    points = [
+                        [0, tile_hanger_cleat_lower_height + tile_hanger_cleat_width],
+                        [0, tile_hanger_cleat_lower_height + tile_hanger_cleat_width + overcut],
+                        [tile_hanger_cleat_width + overcut, tile_hanger_cleat_lower_height + tile_hanger_cleat_width + overcut],
+                        [tile_hanger_cleat_width + overcut, tile_hanger_cleat_lower_height],
+                    ]
+                );
+            }
+        }
     }
 }
 
@@ -98,16 +98,16 @@ module mounting_hole(
     // Overcut each cutter slightly so the mounting hole does not leave
     // coplanar scraps in the preview/STL. The overlaps are internal to the
     // subtracted shape and do not meaningfully change the printed dimensions.
-    translate([0, 0, -bool_eps])
-        cylinder(h=tile_thickness + 2 * bool_eps, d=mounting_hole_shank_diameter);
+    translate([0, 0, -overcut])
+        cylinder(h=tile_thickness + 2 * overcut, d=mounting_hole_shank_diameter);
 
-    translate([0, 0, tile_thickness - mounting_hole_inset_depth - bool_eps])
-        cylinder(h=mounting_hole_inset_depth + 2 * bool_eps, d=mounting_hole_head_diameter);
+    translate([0, 0, tile_thickness - mounting_hole_inset_depth - overcut])
+        cylinder(h=mounting_hole_inset_depth + 2 * overcut, d=mounting_hole_head_diameter);
 
     if (mounting_hole_countersink_depth > 0) {
-        translate([0, 0, tile_thickness - mounting_hole_inset_depth + bool_eps])
+        translate([0, 0, tile_thickness - mounting_hole_inset_depth + overcut])
             zcyl(
-                h=mounting_hole_countersink_depth + 2 * bool_eps,
+                h=mounting_hole_countersink_depth + 2 * overcut,
                 d1=mounting_hole_shank_diameter,
                 d2=mounting_hole_head_diameter,
                 anchor=TOP
@@ -146,69 +146,75 @@ module hex_tile_single(
 
     difference() {
         // Outer hex tile
-        translate([tile_width / 2, tile_width / sqrt(3), 0])
+        translate([tile_width / 2, tile_width / sqrt(3), tile_thickness / 2]) {
             rotate([0, 0, 90])
             diff() {
-                regular_prism(n=6, h=tile_thickness, id=tile_width, center=false, chamfer2=0.5) {
+                regular_prism(n=6, h=tile_thickness, id=tile_width, center=true, chamfer2=0.5) {
                     tag("remove") {
                         if (cut_outside_corners && ((right_outside && !fill_right) || (right_inside && top && !fill_top && !fill_right))) {
                             attach("edge1")
-                                translate([0, tile_thickness / 2, 0])
-                                    cuboid([2, tile_thickness, .75]);
+                                cuboid([2, tile_thickness, 0.7071]);
                         }
                         if (cut_outside_corners && right_outside && !fill_right && !(bottom && fill_bottom)) {
                             attach("edge2")
-                                translate([0, tile_thickness / 2, 0])
-                                    cuboid([2, tile_thickness, .75]);
+                                cuboid([2, tile_thickness, 0.7071]);
                         }
                         if (cut_outside_corners && ((left_outside && !fill_left) || (left_inside && bottom && !fill_bottom && !fill_left))) {
                             attach("edge4")
-                                translate([0, tile_thickness / 2, 0])
-                                    cuboid([2, tile_thickness, .75]);
+                                cuboid([2, tile_thickness, 0.7071]);
                         }
-                        if (cut_outside_corners && left_outside && !fill_left && !(top &&  fill_top)) {
+                        if (cut_outside_corners && left_outside && !fill_left && !(top && fill_top)) {
                             attach("edge5")
-                                translate([0, tile_thickness / 2, 0])
-                                    cuboid([2, tile_thickness, .75]);
+                                cuboid([2, tile_thickness, 0.7071]);
                         }
                         if (chamfer_rear && ((right_outside && !fill_right) || (top && !fill_top))) {
                             attach("bot_edge0")
-                                cuboid([tile_thickness, tile_width, 5]);
+                                cuboid([tile_thickness, tile_width, 0.7071]);
                         }
                         if (chamfer_rear && ((right_outside) || (right_inside && !fill_right))) {
                             attach("bot_edge1")
-                                cuboid([tile_thickness, tile_width, 5]);
+                                cuboid([tile_thickness, tile_width, 0.7071]);
                         }
                         if (chamfer_rear && ((right_outside && !fill_right && !(bottom && fill_bottom)) || (bottom && !fill_bottom))) {
                             attach("bot_edge2")
-                                cuboid([tile_thickness, tile_width, 5]);
+                                cuboid([tile_thickness, tile_width, 0.7071]);
                         }
                         if (chamfer_rear && ((left_outside && !fill_left) || (bottom && !fill_bottom))) {
                             attach("bot_edge3")
-                                cuboid([tile_thickness, tile_width, 5]);
+                                cuboid([tile_thickness, tile_width, 0.7071]);
                         }
                         if (chamfer_rear && ((left_outside) || (left_inside && !fill_left))) {
                             attach("bot_edge4")
-                                cuboid([tile_thickness, tile_width, 5]);
+                                cuboid([tile_thickness, tile_width, 0.7071]);
                         }
                         if (chamfer_rear && ((left_outside && !fill_left && !(top && fill_top)) || (top && !fill_top))) {
                             attach("bot_edge5")
-                                cuboid([tile_thickness, tile_width, 5]);
+                                cuboid([tile_thickness, tile_width, 0.7071]);
+                        }
+                        if (chamfer_rear && top && fill_top) {
+                            attach("bot_corner0")
+                                cuboid([5, 5, 0.7071]);
+                        }
+                        if (chamfer_rear && bottom && fill_bottom) {
+                            attach("bot_corner3")
+                                cuboid([5, 5, 0.7071]);
                         }
                     }
                 }
             }
+        }
 
-	// Space for hanger
-	translate([0, 0, -bool_eps])
-	  linear_extrude(height=tile_thickness + 2 * bool_eps) difference() {
-	  difference() {
-	    translate([hanger_x_offset, tile_hanger_y_offset, 0])
-	      square([tile_hanger_width, tile_hanger_height]);
-	    translate([threaded_hole_center_x, threaded_hole_center_y, 0])
-	      circle(tile_hanger_hole_outer_diameter);
-	  }
-	}
+        // Space for hanger
+        translate([0, 0, -overcut]) {
+            linear_extrude(height=tile_thickness + 2 * overcut) difference() {
+                difference() {
+                    translate([hanger_x_offset, tile_hanger_y_offset, 0])
+                    square([tile_hanger_width, tile_hanger_height]);
+                    translate([threaded_hole_center_x, threaded_hole_center_y, 0])
+                    circle(tile_hanger_hole_outer_diameter);
+                }
+            }
+        }
 
         // Threaded hole
         translate([threaded_hole_center_x, threaded_hole_center_y, 0])
@@ -307,8 +313,8 @@ module hex_fill_top(
                 regular_prism(n=6, h=tile_thickness, id=tile_width, center=false, chamfer2=0.5);
 
         // Crop top
-        translate([0, tile_triangle_height, 0])
-            cube([tile_width, tile_height - tile_triangle_height, tile_thickness]);
+        translate([-overcut, tile_triangle_height, -overcut])
+            cube([tile_width + double_overcut, tile_height - tile_triangle_height, tile_thickness + double_overcut]);
 
         // Top chamfer
         translate([tile_width / 2, tile_triangle_height, tile_thickness])
@@ -332,8 +338,8 @@ module hex_fill_top(
 
         if (crop_left) {
             // Crop left side
-            translate([0, 0, 0])
-                cube([tile_width / 2, tile_height, tile_thickness]);
+            translate([-overcut, 0, -overcut])
+                cube([(tile_width / 2) + overcut, tile_height, tile_thickness + double_overcut]);
             // Left chamfer
             translate([tile_width / 2, tile_height / 2, tile_thickness])
                 chamfer_edge_mask(l=tile_height, chamfer=0.5, orient=FRONT);
@@ -345,8 +351,8 @@ module hex_fill_top(
 
         if (crop_right) {
             // Crop right side
-            translate([tile_width / 2, 0, 0])
-                cube([tile_width / 2, tile_height, tile_thickness]);
+            translate([tile_width / 2, 0, -overcut])
+                cube([tile_width / 2, tile_height, tile_thickness + double_overcut]);
             // Right chamfer
             translate([tile_width / 2, tile_height / 2, tile_thickness])
                 chamfer_edge_mask(l=tile_height, chamfer=0.5, orient=FRONT);
@@ -370,8 +376,8 @@ module hex_fill_bottom(
                 regular_prism(n=6, h=tile_thickness, id=tile_width, center=false, chamfer2=0.5);
 
         // Crop bottom
-        translate([0, -(tile_height - tile_triangle_height), 0])
-            cube([tile_width, tile_height - tile_triangle_height, tile_thickness]);
+        translate([-overcut, -(tile_height - tile_triangle_height), -overcut])
+            cube([tile_width + double_overcut, tile_height - tile_triangle_height, tile_thickness + double_overcut]);
 
         // Bottom chamfer
         translate([tile_width / 2, 0, tile_thickness])
@@ -383,8 +389,8 @@ module hex_fill_bottom(
 
         if (crop_left) {
             // Crop left side
-            translate([0, 0, 0])
-                cube([tile_width / 2, tile_height, tile_thickness]);
+            translate([0, -overcut, -overcut])
+                cube([tile_width / 2, tile_height, tile_thickness + double_overcut]);
             // Left chamfer
             translate([tile_width / 2, tile_height / 2, tile_thickness])
                 chamfer_edge_mask(l=tile_height, chamfer=0.5, orient=FRONT);
@@ -396,8 +402,8 @@ module hex_fill_bottom(
 
         if (crop_right) {
             // Crop right side
-            translate([tile_width / 2, 0, 0])
-                cube([tile_width / 2, tile_height, tile_thickness]);
+            translate([tile_width / 2, -overcut, -overcut])
+                cube([(tile_width / 2) + overcut, tile_height, tile_thickness + double_overcut]);
             // Right chamfer
             translate([tile_width / 2, tile_height / 2, tile_thickness])
                 chamfer_edge_mask(l=tile_height, chamfer=0.5, orient=FRONT);
@@ -436,10 +442,13 @@ module hex_fill_left(
                         }
                     }
                 }
-        translate([- (tile_width / 2), 0, 0])
-            cube([tile_width / 2, tile_height, tile_thickness]);
+
+        // Crop left side
+        translate([-(tile_width / 2) - overcut, 0, -overcut])
+            cube([(tile_width / 2) + overcut, tile_height, tile_thickness + double_overcut]);
         translate([0, tile_height / 2, tile_thickness])
             chamfer_edge_mask(l=tile_height, chamfer=0.5, orient=FRONT);
+
         if (chamfer_rear) {
             translate([0, tile_height / 2, 0])
                 chamfer_edge_mask(l=tile_height, chamfer=0.5, orient=FRONT);
@@ -470,10 +479,13 @@ module hex_fill_right(
                         }
                     }
                 }
-        translate([(tile_width / 2), 0, 0])
-            cube([tile_width / 2, tile_height, tile_thickness]);
+
+        // Crop right side
+        translate([(tile_width / 2), 0, -overcut])
+            cube([(tile_width / 2) + overcut, tile_height, tile_thickness + double_overcut]);
         translate([tile_width / 2, tile_height / 2, tile_thickness])
             chamfer_edge_mask(l=tile_height, chamfer=0.5, orient=FRONT);
+
         if (chamfer_rear) {
             translate([tile_width / 2, tile_height / 2, 0])
                 chamfer_edge_mask(l=tile_height, chamfer=0.5, orient=FRONT);
