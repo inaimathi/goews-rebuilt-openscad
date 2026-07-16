@@ -15,7 +15,7 @@ hanger_tolerance = 0.15;
 
 /* [Magazine parameters] */
 // Number of columns of magazines (across the width)
-columns = 4;
+columns = 3;
 
 // Number of rows of magazines (front-to-back depth). Each row adds another line of cradles further out from the wall.
 rows = 2;
