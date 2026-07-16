@@ -104,6 +104,8 @@ class TestHoleShelfDefinition:
         assert body.rows == 1
         assert body.thickness == 4
         assert body.hole_radius == 3.5
+        assert body.hole_chamfer_depth == 0
+        assert body.hole_chamfer_angle == 45
         assert body.column_gap == 15
         assert body.row_gap == 15
         assert body.front_gap == 15
@@ -135,7 +137,17 @@ class TestHoleShelfDefinition:
         with pytest.raises(ValidationError):
             HoleShelfDefinition(hole_radius=0)
 
-    def test_validation_stagger(self):
+    def test_validation_hole_chamfer_depth_ge_zero(self):
+        """Test that hole_chamfer_depth must be greater than or equal to zero."""
+        with pytest.raises(ValidationError):
+            HoleShelfDefinition(hole_chamfer_depth=-1)
+
+    def test_validation_hole_chamfer_angle_gt_zero(self):
+        """Test that hole_chamfer_angle must be greater than zero."""
+        with pytest.raises(ValidationError):
+            HoleShelfDefinition(hole_chamfer_angle=0)
+
+    def test_stagger(self):
         """Test that stagger is a boolean."""
         body = HoleShelfDefinition(stagger=True)
         assert body.stagger is True
@@ -168,6 +180,21 @@ class TestMakeHoleShelfFilename:
         """Test filename with custom thickness."""
         body = HoleShelfDefinition(thickness=5)
         assert make_hole_shelf_filename(body) == "hole-shelf-1x3-original-thickness_5.0.stl"
+
+    def test_custom_chamfer_depth(self):
+        """Test filename with custom chamfer depth."""
+        body = HoleShelfDefinition(hole_chamfer_depth=2)
+        assert make_hole_shelf_filename(body) == "hole-shelf-1x3-original-hole_chamfer_depth_2.0.stl"
+
+    def test_custom_chamfer_angle(self):
+        """Test filename with custom chamfer angle."""
+        body = HoleShelfDefinition(hole_chamfer_angle=30)
+        assert make_hole_shelf_filename(body) == "hole-shelf-1x3-original-hole_chamfer_angle_30.0.stl"
+
+    def test_default_chamfer_not_in_filename(self):
+        """Test that default chamfer values don't appear in filename."""
+        body = HoleShelfDefinition()
+        assert make_hole_shelf_filename(body) == "hole-shelf-1x3-original.stl"
 
 
 class TestSlotShelfDefinition:

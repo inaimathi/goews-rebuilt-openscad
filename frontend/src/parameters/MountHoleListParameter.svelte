@@ -1,24 +1,48 @@
 <script>
-  let { field, parameters, fieldName } = $props();
+  let { field, parameters, fieldName, error = null, fieldErrors = {}, onClearError = null } = $props();
+
+  // Parse errors like "holes.0.diameter" into {0: {diameter: "..."}}
+  let holeFieldErrors = $derived.by(() => {
+    const result = {};
+    for (const [key, value] of Object.entries(fieldErrors)) {
+      const parts = key.split('.');
+      if (parts[0] === fieldName && parts.length === 3) {
+        const index = parseInt(parts[1]);
+        const subField = parts[2];
+        if (!result[index]) result[index] = {};
+        result[index][subField] = value;
+      }
+    }
+    return result;
+  });
 
   const MountHoleType = {
-    Round: { value: 1, description: 'Round for heat-set insert or self-tapping screw' },
-    Hex: { value: 2, description: 'Hex recess for hex nut or bolt head' },
-    Square: { value: 3, description: 'Square recess for square nut' },
-    SocketHead: { value: 4, description: 'Socket Head counterbore for SHCS' },
-    ButtonHead: { value: 5, description: 'Button Head counterbore for BHCS' },
-    CountersinkHead: { value: 6, description: 'Countersink for FHCS' },
+    Round: 'Round',
+    Hex: 'Hex',
+    Square: 'Square',
+    SocketHead: 'Socket Head',
+    ButtonHead: 'Button Head',
+    CountersinkHead: 'Countersink Head',
   };
 
-  const mountHoleTypeOptions = Object.entries(MountHoleType).map(([key, typeObject]) => ({
-    value: typeObject.value,
-    name: typeObject.description,
+  const mountHoleTypeDescriptions = {
+    Round: 'Round for heat-set insert or self-tapping screw',
+    Hex: 'Hex recess for hex nut or bolt head',
+    Square: 'Square recess for square nut',
+    'Socket Head': 'Socket Head counterbore for SHCS',
+    'Button Head': 'Button Head counterbore for BHCS',
+    'Countersink Head': 'Countersink for FHCS',
+  };
+
+  const mountHoleTypeOptions = Object.values(MountHoleType).map((value) => ({
+    value: value,
+    name: mountHoleTypeDescriptions[value],
   }));
 
   function addMountHole() {
     const currentValue = parameters[fieldName] || [];
     const newHole = {
-      hole_type: MountHoleType.Round.value,
+      hole_type: MountHoleType.Round,
       x_offset: 20.75,
       y_offset: 17.5,
       diameter: 4.0,
@@ -37,6 +61,7 @@
     parameters[fieldName] = currentValue.map((hole, i) =>
       i === index ? { ...hole, [field]: newValue } : hole
     );
+    onClearError?.();
   }
 </script>
 
@@ -50,6 +75,12 @@
   <p class="text-gray-500 text-sm mb-1">
     {field.description}
   </p>
+
+  {#if error && Object.keys(holeFieldErrors).length === 0}
+    <div class="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded mb-3 text-sm">
+      {error}
+    </div>
+  {/if}
 
   {#if Array.isArray(parameters[fieldName])}
     {#each parameters[fieldName] as hole, index (hole)}
@@ -66,7 +97,7 @@
             <select
               id={`hole_type-${index}`}
               value={hole.hole_type}
-              onchange={(e) => updateHole(index, 'hole_type', parseInt(e.target.value))}
+              onchange={(e) => updateHole(index, 'hole_type', e.target.value)}
               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             >
               {#each mountHoleTypeOptions as option}
@@ -83,15 +114,17 @@
               >X Offset (mm):</label
             >
             <input
-              type="number"
-              step="any"
-              min="0.0001"
+              type="text"
+              inputmode="decimal"
               id={`x_offset-${index}`}
               value={hole.x_offset}
-              oninput={(e) => updateHole(index, 'x_offset', parseFloat(e.target.value) || 0)}
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              onblur={(e) => updateHole(index, 'x_offset', parseFloat(e.target.value) || 0)}
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline {holeFieldErrors[index]?.x_offset ? 'border-red-500' : ''}"
               placeholder="e.g., 10.5"
             />
+            {#if holeFieldErrors[index]?.x_offset}
+              <p class="text-red-500 text-xs mt-1">{holeFieldErrors[index].x_offset}</p>
+            {/if}
           </div>
 
           <!-- Y Offset -->
@@ -102,15 +135,17 @@
               >Y Offset (mm):</label
             >
             <input
-              type="number"
-              step="any"
-              min="0.0001"
+              type="text"
+              inputmode="decimal"
               id={`y_offset-${index}`}
               value={hole.y_offset}
-              oninput={(e) => updateHole(index, 'y_offset', parseFloat(e.target.value) || 0)}
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              onblur={(e) => updateHole(index, 'y_offset', parseFloat(e.target.value) || 0)}
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline {holeFieldErrors[index]?.y_offset ? 'border-red-500' : ''}"
               placeholder="e.g., 5.2"
             />
+            {#if holeFieldErrors[index]?.y_offset}
+              <p class="text-red-500 text-xs mt-1">{holeFieldErrors[index].y_offset}</p>
+            {/if}
           </div>
 
           <!-- Diameter -->
@@ -121,15 +156,17 @@
               >Diameter (mm):</label
             >
             <input
-              type="number"
-              step="any"
-              min="0.0001"
+              type="text"
+              inputmode="decimal"
               id={`diameter-${index}`}
               value={hole.diameter}
-              oninput={(e) => updateHole(index, 'diameter', parseFloat(e.target.value) || 0)}
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              onblur={(e) => updateHole(index, 'diameter', parseFloat(e.target.value) || 0)}
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline {holeFieldErrors[index]?.diameter ? 'border-red-500' : ''}"
               placeholder="e.g., 3.0"
             />
+            {#if holeFieldErrors[index]?.diameter}
+              <p class="text-red-500 text-xs mt-1">{holeFieldErrors[index].diameter}</p>
+            {/if}
           </div>
 
           <!-- Depth -->
@@ -140,15 +177,17 @@
               >Depth (mm):</label
             >
             <input
-              type="number"
-              step="any"
-              min="0.0001"
+              type="text"
+              inputmode="decimal"
               id={`depth-${index}`}
               value={hole.depth}
-              oninput={(e) => updateHole(index, 'depth', parseFloat(e.target.value) || 0)}
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              onblur={(e) => updateHole(index, 'depth', parseFloat(e.target.value) || 0)}
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline {holeFieldErrors[index]?.depth ? 'border-red-500' : ''}"
               placeholder="e.g., 15.0"
             />
+            {#if holeFieldErrors[index]?.depth}
+              <p class="text-red-500 text-xs mt-1">{holeFieldErrors[index].depth}</p>
+            {/if}
           </div>
         </div>
         <div class="mt-3 text-right">
